@@ -196,7 +196,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			pMapVertexData[x + (m_sizeX * y)].Position = D3DXVECTOR3(x, heightValue, y);
 
-			pMapVertexData[x + (m_sizeX * y)].TextCoord = D3DXVECTOR2((float)x / (float)m_sizeX, (float)y / (float)m_sizeZ);
+			pMapVertexData[x + (m_sizeX * y)].TextCoord = D3DXVECTOR2(((float)x / (float)m_sizeX), 1 - ((float)y / (float)m_sizeZ));
 		}
 	}
 
@@ -285,7 +285,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 5);
 			//D3DXMatrixRotationY(&Rotation, D3DX_PI / 5);
-			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ - 1) / 2) + 50, 75);
+			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ - 1) / 2) + 50, 30);
 
 			World =  Rotation * Position;
 
@@ -335,6 +335,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	pD3D->Release();
 	device->Release();
 	pDecl->Release();
+	pMapVertexBuffer->Release();
+	pMapIndexBuffer->Release();
+	pTexture->Release();
 	pEffect->Release();
 
 	return (int) oMsg.wParam;

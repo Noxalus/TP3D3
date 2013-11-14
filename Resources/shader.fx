@@ -1,15 +1,16 @@
 shared float4x4 WorldViewProj;
+shared Texture2D Texture;
 
 struct VertexInput
 {
 	float3 Position   : POSITION;
-	float4 Color    : COLOR;
+	float2 UV  : TEXCOORD0;
 };
 
 struct VertexOutput
 {
 	float4 Position   : POSITION;
-	float4 Color    : COLOR;
+	float2 UV  : TEXCOORD0;
 };
 
 struct PixelOutput
@@ -17,20 +18,29 @@ struct PixelOutput
 	
 };
 
+sampler2D  MapSampler = sampler_state
+{
+	Texture  =  Texture;
+	MinFilter  =  LINEAR;
+	MagFilter  =  LINEAR;
+	MipFilter  =  LINEAR;
+	AddressU  =  WRAP;
+	AddressV  =  WRAP;
+};
+
 VertexOutput VertexMain(VertexInput input)
 {
 	VertexOutput output;
 
 	output.Position = mul(float4(input.Position, 1.0f), WorldViewProj);
-	output.Color = input.Color;
+	output.UV = input.UV;
 	
 	return output;
 }
 
 float4 PixelMain(VertexOutput input) : COLOR0	
 {
-	//input.Color.xyzw = float4(1.f, 0.f, 0.f, 0.f);
-	return input.Color;
+	return tex2D(MapSampler, input.UV); 
 }
 
 technique normal

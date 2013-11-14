@@ -126,6 +126,24 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	IDirect3DDevice9 *device;
 	pD3D->CreateDevice(0, D3DDEVTYPE_HAL, hWnd, D3DCREATE_HARDWARE_VERTEXPROCESSING, &pp, &device);
 
+	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
+	int num_card = 0;
+	// Look for 'NVIDIA PerfHUD' adapter
+	// If it is present, override default settings
+	for (unsigned int adapter = 0; adapter < pD3D->GetAdapterCount (); 
+		adapter++)
+	{
+		D3DADAPTER_IDENTIFIER9 identifier;
+		HRESULT Res;
+		Res = pD3D->GetAdapterIdentifier (adapter, 0, &identifier);
+		if (strstr (identifier.Description, "PerfHUD") != 0)
+		{
+			num_card = adapter;
+			DeviceType = D3DDEVTYPE_REF;
+			break;
+		}
+	}
+
 	//Create and fill other DirectX Stuffs like Vertex/Index buffer, shaders  
 
 	// Vertex declaration
@@ -409,12 +427,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			pEffect->Begin(&cPasses, 0);
 			for (iPass= 0; iPass< cPasses; ++iPass)
 			{
-				pEffect->BeginPass(iPass);
-				pEffect->CommitChanges(); // que si on a changé des états après le BeginPass
+			pEffect->BeginPass(iPass);
+			pEffect->CommitChanges(); // que si on a changé des états après le BeginPass
 
-				device->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, vertexCount, 0, 1);
+			device->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, vertexCount, 0, 1);
 
-				pEffect->EndPass();
+			pEffect->EndPass();
 			}
 
 			pEffect->End();

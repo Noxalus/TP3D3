@@ -90,10 +90,11 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	// View matrix
 	D3DXMATRIX View;
 
-	D3DXVECTOR3 Eye (0.f, 0.f, -1.f);
+	D3DXVECTOR3 CameraPosition (0.f, 0.f, -1.f);
+
 	D3DXVECTOR3 At (0.f, 0.f, 0.f);
 	D3DXVECTOR3 Up (0.f, 1.f, 0.f);
-	D3DXMatrixLookAtLH(&View, &Eye, &At, &Up);
+
 
 	// Projection matrix
 	D3DXMATRIX Projection;
@@ -260,38 +261,32 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 		else
 		{
-// Update the input state
-			
-			/*
-			if (input->keyDown(DIK_LEFT)){
-			D3DXMatrixTranslation(&Position, -1, 0, 0);
-			}
-			if (input->keyDown(DIK_RIGHT)){
-			D3DXMatrixTranslation(&Position, 1, 0, 0);
-			}
-			if (input->keyDown(DIK_UP)){
-			}
-			if (input->keyDown(DIK_DOWN)){
-			}
-			*/
-
-			if (_inputManager->IsKeyPressed(DIK_UP))
-				D3DXMatrixTranslation(&Position, 10, 0, 0);
-
+			// Update the input state
 			_inputManager->Manage();
+			
+			// Up
+			if (_inputManager->IsKeyDone(DIK_W))
+			{
+				CameraPosition.z += 0.1f;
+			}
+			// Left
+			if (_inputManager->IsKeyDone(DIK_A))
+			{
+				CameraPosition.x += 0.1f;
+			}
+			// Down
+			if (_inputManager->IsKeyDone(DIK_S))
+			{
+				CameraPosition.z -= 0.1f;
+			}
+			// Right
+			if (_inputManager->IsKeyDone(DIK_D))
+			{
+				CameraPosition.x -= 0.1f;
+			}
 
-			// Top view
-			/*
-			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 2);
-			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ + 5) / 2), -4);
-			*/
-
-
-			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 5);
-			//D3DXMatrixRotationY(&Rotation, D3DX_PI / 5);
-			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ - 1) / 2) + 50, 30);
-
-			World =  Rotation * Position;
+			D3DXMatrixLookAtLH(&View, &CameraPosition, &At, &Up);
+			D3DXMatrixIdentity(&World);
 
 			WorldViewProj = World * View * Projection;
 
@@ -343,6 +338,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	pMapIndexBuffer->Release();
 	pTexture->Release();
 	pEffect->Release();
+	_inputManager->Destroy();
 
 	return (int) oMsg.wParam;
 }

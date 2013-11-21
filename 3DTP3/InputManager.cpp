@@ -1,196 +1,156 @@
 #include "stdafx.h"
 #include "InputManager.h"
 
+static uint s_iMouseDataSize = 16;
+static uint s_iKeyboardDataSize = 32;
 
-InputManager::InputManager(void)
+InputManager::InputManager()
 {
-	dInput = NULL;
-	mouseDevice = NULL;
-	keyboardDevice = NULL;
-
-	// Zero Fill the keyPressState
-	// used to record keypresses
-	for (int i = 0; i < 256; i++){
-		keyPressState[i] = 0;
-	}
+	m_bLeftMouseClick = false;
+	m_bLeftMouseDown = false;
+	m_bRightMouseClick = false;
+	m_bRightMouseDown = false;
+	memset(m_pKeysStates, 0, 256 * sizeof(uchar));
+	memset(m_pKeysPressed, false, 256 * sizeof(uchar));
 }
 
-InputManager::~InputManager(void)
+InputManager::~InputManager()
 {
-	if (dInput) 
-    { 
-        if (mouseDevice) 
-        { 
-            mouseDevice->Unacquire(); 
-            mouseDevice->Release();
-            mouseDevice = NULL; 
-        }
-		if (keyboardDevice){
-			keyboardDevice->Unacquire(); 
-            keyboardDevice->Release();
-            keyboardDevice = NULL; 
-		}
-        dInput->Release();
-        dInput = NULL; 
-    } 
 }
 
-//
-//   FUNCTION: init(HINSTANCE hInst, HWND wndHandle)
-//
-//   PURPOSE: Creates an Input Object for monitoring mouse input, and one for keyboard input.
-//
-bool InputManager::init(HINSTANCE hInst, HWND wndHandle)
+bool	InputManager::Create(HINSTANCE iHinstance, HWND iHwnd)
 {
-	HRESULT hr;
-
-	// Create a direct input object
-
-    hr = DirectInput8Create(hInst, DIRECTINPUT_VERSION, 
-                            IID_IDirectInput8, (void**)&dInput, NULL); 
-
-	if FAILED(hr){ 
-		return FALSE;
-	}
-
-    // Create a device for monitoring the mouse
-    if FAILED(dInput->CreateDevice(GUID_SysMouse, &mouseDevice, NULL))
-		return FALSE; 
-	if FAILED(mouseDevice->SetDataFormat(&c_dfDIMouse))
-		return FALSE; 
-    if FAILED(mouseDevice->SetCooperativeLevel(wndHandle, DISCL_FOREGROUND | DISCL_EXCLUSIVE))
-        return FALSE; 
-    if FAILED(mouseDevice->Acquire())
-        return FALSE; 
-
-	// Create a device for monitoring the keyboard
-	if (FAILED(dInput->CreateDevice(GUID_SysKeyboard, &keyboardDevice, NULL)))
+	if (FAILED(DirectInput8Create(iHinstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (VOID**) &m_pInput, NULL)))
 		return false;
-	if (FAILED(keyboardDevice->SetDataFormat(&c_dfDIKeyboard)))
+	if (CreateMouse(iHwnd) == false)
 		return false;
-	if (FAILED(keyboardDevice->SetCooperativeLevel(wndHandle, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
+	if (CreateKeyBoard(iHwnd) == false)
 		return false;
-	if (FAILED(keyboardDevice->Acquire()))
-		return false;
-
 	return true;
 }
 
-
-//
-//   FUNCTION: getInput()
-//
-//   PURPOSE: Gets the state of the keyboard and mouse, if the device has been lost it trys to reaquire it
-//
-void InputManager::getInput()
+bool	InputManager::CreateMouse(HWND iHwnd)
 {
-	HRESULT hr;
+	if (FAILED(m_pInput->CreateDevice(GUID_SysMouse, &m_pMouse, NULL)))
+		return false;
+	if (FAILED(m_pMouse->SetDataFormat(&c_dfDIMouse)))
+		return false;
+	if (FAILED(m_pMouse->SetCooperativeLevel(iHwnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND)))
+		return false;
+	DIPROPDWORD dipdw;
+	dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+	dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+	dipdw.diph.dwObj = 0;
+	dipdw.diph.dwHow = DIPH_DEVICE;
+	dipdw.dwData = s_iMouseDataSize;
+	if (FAILED(m_pMouse->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
+		return false;
+	if (FAILED(m_pMouse->Acquire()))
+		return false;
+	return true;
+}
 
-	hr = mouseDevice->GetDeviceState(sizeof(DIMOUSESTATE),(LPVOID)&mouseState); 
-	if (FAILED (hr))
+bool	InputManager::CreateKeyBoard(HWND iHwnd)
+{
+	if (FAILED(m_pInput->CreateDevice(GUID_SysKeyboard, &m_pKeyboard, NULL)))
+		return false;
+	if (FAILED(m_pKeyboard->SetDataFormat(&c_dfDIKeyboard)))
+		return false;
+	if (FAILED(m_pKeyboard->SetCooperativeLevel(iHwnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND)))
+		return false;
+	DIPROPDWORD dipdw;
+	dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+	dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+	dipdw.diph.dwObj = 0;
+	dipdw.diph.dwHow = DIPH_DEVICE;
+	dipdw.dwData = s_iKeyboardDataSize;
+	if (FAILED(m_pKeyboard->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
+		return false;
+	if (FAILED(m_pKeyboard->Acquire()))
+		return false;
+	return true;
+}
+
+void	InputManager::Destroy()
+{
+	if (m_pKeyboard)
 	{
-		// try and reacquire the input device
-		mouseDevice->Acquire();
+		m_pKeyboard->Unacquire();
+		m_pKeyboard->Release();
+		m_pKeyboard = NULL;
 	}
-
-	keyboardDevice->GetDeviceState(sizeof(UCHAR[256]), (LPVOID)keyState);
-	if (FAILED (hr))
+	if (m_pMouse)
 	{
-		// try and reacquire the input device
-		keyboardDevice->Acquire();
+		m_pMouse->Unacquire();
+		m_pMouse->Release();
+		m_pMouse = NULL;
+	}
+	if (m_pInput)
+	{
+		m_pInput->Release();
+		m_pInput = NULL;
 	}
 }
 
-//
-//   FUNCTION: getMouseMovingX()
-//
-//   PURPOSE: returns the amount the mouse is moving in the X axis
-//
-int InputManager::getMouseMovingX() 
+void	InputManager::Manage()
 {
-	return mouseState.lX; 
+	ManageMouse();
+	ManageKeyBoard();
 }
 
-//
-//   FUNCTION: getMouseMovingY()
-//
-//   PURPOSE: returns the amount the mouse is moving in the Y axis
-//
-int InputManager::getMouseMovingY() 
+void	InputManager::ManageMouse()
 {
-	return mouseState.lY; 
-}
+	DWORD dwItems = s_iMouseDataSize;
+	DIDEVICEOBJECTDATA mouseBuffer[16];//s_iMouseDataSize
+	m_pMouse->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), mouseBuffer, &dwItems, 0);
 
-//
-//   FUNCTION: isButtonDown(int which)
-//
-//   PURPOSE: Gets the state of the keyboard and mouse, if the device has been lost it trys to reaquire it
-//
-bool InputManager::isButtonDown(int button)
-{
-	//check the state of the button
-	if (mouseState.rgbButtons[button] & 0x80){
-		return true;
-	} else {
-		return false;
-	}
-}
+	m_iMouseMoveX = 0;
+	m_iMouseMoveY = 0;
+	m_bLeftMouseClick = false;
+	m_bRightMouseClick = false;
 
-//
-//   FUNCTION: keyDown(DWORD key)
-//
-//   PURPOSE: returns if a key is currently pressed.
-//
-bool InputManager::keyDown(DWORD key)
-{
-	//check the state of the key
-	if (keyState[key] & 0x80){
-		return true;
-	} else {
-		return false;
-	}
-}
-
-//
-//   FUNCTION: keyUp(DWORD key)
-//
-//   PURPOSE: returns if a key is currently not pressed.
-//
-bool InputManager::keyUp(DWORD key)
-{
-	//check the state of the key
-	if (keyState[key] & 0x80){
-		return false;
-	} else {
-		return true;
+	for (DWORD i = 0; i < dwItems; ++i)
+	{
+		switch (mouseBuffer[i].dwOfs)
+		{
+		case DIMOFS_BUTTON0:
+			if (mouseBuffer[i].dwData & 0x80) // le bouton gauche est enfoncé
+				m_bLeftMouseDown = true;
+			else // le bouton gauche est relaché
+			{
+				m_bLeftMouseClick = m_bLeftMouseDown;
+				m_bLeftMouseDown = false;
+			}
+			break;
+		case DIMOFS_BUTTON1:
+			if (mouseBuffer[i].dwData & 0x80) // idem pour le bouton droit
+				m_bRightMouseDown = true;
+			else
+			{
+				m_bRightMouseClick = m_bRightMouseDown;
+				m_bRightMouseDown = false;
+			}
+			break;
+		case DIMOFS_X: // on a modifié la position horizontale de la souris
+			m_iMouseMoveX += mouseBuffer[i].dwData;
+			break;
+		case DIMOFS_Y: // on a modifié la position verticale de la souris
+			m_iMouseMoveY += mouseBuffer[i].dwData;
+			break;
+		}
 	}
 }
 
-//
-//   FUNCTION: keyPress(DWORD key)
-//
-//   PURPOSE: returns if a key has been pressed and then depressed
-//
-bool InputManager::keyPress(DWORD key)
+void	InputManager::ManageKeyBoard()
 {
-
-	//check for keydown
-	if (keyDown(key)){
-		keyPressState[key] = 1;
+	uchar	pKeysStates[256];
+	m_pKeyboard->GetDeviceState(256 * sizeof(uchar), (LPVOID) pKeysStates);
+	uint32* pNewKeyStates = (uint32*) pKeysStates;
+	uint32* pKeyStates = (uint32*) m_pKeysStates;
+	uint32* pKeyPressed = (uint32*) m_pKeysPressed;
+	for (uint i = 0; i < 64; ++i)
+	{
+		pKeyPressed[i] = pKeyStates[i] & ~pNewKeyStates[i];
+		pKeyStates[i] = pNewKeyStates[i];
 	}
-	//check for key reaching the keydown state
-	if (keyPressState[key] == 1){
-		//check for key release
-		if (keyUp(key))
-			keyPressState[key] = 2;
-	}
-
-	//check if key has been pressed and released
-	if (keyPressState[key] == 2){
-		//reset the key status
-		keyPressState[key] = 0;
-		return true;
-	}
-	
-	return false;
 }

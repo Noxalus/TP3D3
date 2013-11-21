@@ -1,35 +1,44 @@
 #pragma once
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
 
-class InputManager
+#include "stdafx.h"
+
+class IAENGINE_API InputManager
 {
 public:
-	InputManager(void);
-	~InputManager(void);
 
-	bool init(HINSTANCE hInst, HWND wndHandle);
+	InputManager();
+	virtual ~InputManager();
 
-	void getInput();
-	//mouse functions
-	bool isButtonDown(int button);
-	int getMouseMovingX();
-	int getMouseMovingY();
-	//keyboard functions
-	bool keyDown(DWORD key);
-	bool keyUp(DWORD key);
-	bool keyPress(DWORD key);
+	bool	Create(HINSTANCE iHinstance, HWND	iHwnd);
+	void	Destroy();
 
-private:
+	void Manage();
 
-	LPDIRECTINPUT8        dInput;			// the direct input object
-	LPDIRECTINPUTDEVICE8  mouseDevice;		// the direct input device for the mouse
-	LPDIRECTINPUTDEVICE8 keyboardDevice;	// the direct input device for the keyboard
+	long GetMouseMoveX() const { return m_iMouseMoveX; }
+	long GetMouseMoveY() const { return m_iMouseMoveY; }
+	bool IsLeftButtonClick() const { return m_bLeftMouseClick; }
+	bool IsKeyDone(DWORD iKeyCode) const { return (m_pKeysStates[iKeyCode] & 0x80) != 0; }
+	bool IsKeyPressed(DWORD iKeyCode) const { return m_pKeysPressed[iKeyCode]; }
 
-	DIMOUSESTATE mouseState;			// The current state of the mouse device
+protected:
+	bool CreateMouse(HWND iHwnd);
+	bool CreateKeyBoard(HWND iHwnd);
+	void ManageMouse();
+	void ManageKeyBoard();
 
-	
-	UCHAR keyState[256];				//state of the keys
-	UCHAR keyPressState[256];			//used for the keyPressed function
+	IDirectInput*				m_pInput;
 
+	//KeyBoard
+	IDirectInputDevice*	m_pKeyboard;
+	uchar								m_pKeysStates[256];
+	bool								m_pKeysPressed[256];
+
+	//Mouse
+	IDirectInputDevice*	m_pMouse;
+	bool								m_bLeftMouseClick;
+	bool								m_bLeftMouseDown;
+	bool								m_bRightMouseClick;
+	bool								m_bRightMouseDown;
+	long								m_iMouseMoveX;
+	long								m_iMouseMoveY;
 };

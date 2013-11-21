@@ -15,7 +15,7 @@ bool				CreateDevice();
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 
 // Input Manager
-InputManager* input;
+InputManager* _inputManager;
 
 // Height map
 unsigned short m_sizeX;
@@ -68,8 +68,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 
 	// Input manager
-	input = new InputManager();
-	input->init(hInstance, hWnd);
+	_inputManager = new InputManager();
+	_inputManager->Create(hInstance, hWnd);
 
 	D3DCOLOR backgroundColor = D3DCOLOR_RGBA(0, 0, 0, 0);
 
@@ -260,8 +260,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 		else
 		{
+// Update the input state
+			
 			/*
-			// Update the input state
 			if (input->keyDown(DIK_LEFT)){
 			D3DXMatrixTranslation(&Position, -1, 0, 0);
 			}
@@ -272,9 +273,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			}
 			if (input->keyDown(DIK_DOWN)){
 			}
-
-			//D3DXMatrixRotationX(&Rotation, -D3DX_PI / 4);
 			*/
+
+			if (_inputManager->IsKeyPressed(DIK_UP))
+				D3DXMatrixTranslation(&Position, 10, 0, 0);
+
+			_inputManager->Manage();
 
 			// Top view
 			/*
